@@ -13,6 +13,16 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY . /app
-RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+
+# OpenShift commonly runs containers with an arbitrary UID.
+# Make application-owned paths writable by the root group, which OpenShift
+# assigns to the runtime user.
+RUN sed -i 's/\r$//' /app/entrypoint.sh \
+    && chmod +x /app/entrypoint.sh \
+    && mkdir -p /app/logs \
+    && chgrp -R 0 /app \
+    && chmod -R g=u /app
 
 EXPOSE 8000
+
+CMD ["/bin/sh", "/app/entrypoint.sh"]
